@@ -1,5 +1,12 @@
 package file
 
+import (
+	"fmt"
+	"io"
+	"os"
+	"syscall"
+)
+
 // 输入流复制到文件里面
 func test_stdin() error {
 	var out io.Writer
