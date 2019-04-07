@@ -78,7 +78,7 @@ func (this *CClient) init() {
 				conn, isConnect = this.connect()
 			}
 			if !isConnect {
-				time.Sleep(1 * time.Second)
+				time.Sleep(10 * time.Millisecond)
 				continue
 			}
 			err := this.send(conn, request)
