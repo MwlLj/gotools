@@ -3,13 +3,10 @@ package logclient
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net"
 	"strconv"
-	"sync"
 	"time"
 )
 
@@ -37,9 +34,7 @@ type CClient struct {
 	serverName    string
 	serverVersion string
 	serverNo      string
-	isConnect     bool
-	mutex         sync.Mutex
-	conn          *net.TCPConn
+	ch            chan *CRequest
 }
 
 func (this *CClient) Println(format string, a ...interface{}) {
@@ -73,37 +68,40 @@ func (this *CClient) Fatalln(format string, a ...interface{}) {
 }
 
 func (this *CClient) init() {
-	this.connect()
-	go func(self *CClient) {
+	this.ch = make(chan *CRequest)
+	go func() {
+		isConnect := false
+		var conn *net.TCPConn = nil
 		for {
-			if !self.isConnect {
-				self.connect()
+			request := <-this.ch
+			if !isConnect {
+				conn, isConnect = this.connect()
 			}
-			time.Sleep(3 * time.Second)
+			if !isConnect {
+				time.Sleep(1 * time.Second)
+				continue
+			}
+			err := this.send(conn, request)
+			if err != nil {
+				isConnect = false
+			}
 		}
-	}(this)
+	}()
 }
 
-func (this *CClient) connect() {
+func (this *CClient) connect() (*net.TCPConn, bool) {
 	buffer := bytes.Buffer{}
 	buffer.WriteString(this.host)
 	buffer.WriteString(":")
 	buffer.WriteString(strconv.FormatInt(int64(this.port), 10))
 	addr, err := net.ResolveTCPAddr("tcp4", buffer.String())
 	if err != nil {
-		this.mutex.Lock()
-		this.isConnect = false
-		this.mutex.Unlock()
-		return
+		return nil, false
 	}
-	this.conn, err = net.DialTCP("tcp", nil, addr)
+	conn, err := net.DialTCP("tcp", nil, addr)
 	if err != nil {
-		this.mutex.Lock()
-		this.isConnect = false
-		this.mutex.Unlock()
-		return
+		return nil, false
 	}
-	this.conn.SetKeepAlive(true)
 	request := CRequest{
 		Mode:          requestModeConnect,
 		Identify:      requestIdentifyPublish,
@@ -111,16 +109,11 @@ func (this *CClient) connect() {
 		ServerVersion: this.serverVersion,
 		ServerNo:      this.serverNo,
 	}
-	err = this.send(&request)
+	err = this.send(conn, &request)
 	if err != nil {
-		this.mutex.Lock()
-		this.isConnect = false
-		this.mutex.Unlock()
-		return
+		return nil, false
 	}
-	this.mutex.Lock()
-	this.isConnect = true
-	this.mutex.Unlock()
+	return conn, true
 }
 
 func (this *CClient) sendRequest(topic string, logType *string, data *string) {
@@ -135,39 +128,22 @@ func (this *CClient) sendRequest(topic string, logType *string, data *string) {
 		StorageMode:   storageModeFile,
 		LogType:       *logType,
 	}
-	this.send(&request)
+	this.ch <- &request
 }
 
-func (this *CClient) send(request *CRequest) error {
-	if this.conn == nil {
-		this.mutex.Lock()
-		this.isConnect = false
-		this.mutex.Unlock()
-		log.Println("connect is nil", this.isConnect)
-		return errors.New("not connect")
-	}
+func (this *CClient) send(conn *net.TCPConn, request *CRequest) error {
 	b, err := json.Marshal(request)
 	if err != nil {
-		this.mutex.Lock()
-		this.isConnect = false
-		this.mutex.Unlock()
 		log.Printf("encode request error, err: %v", err)
 		return err
 	}
 	buf := bytes.Buffer{}
 	buf.WriteString(string(b))
 	buf.WriteString("\n")
-	_, err = io.WriteString(this.conn, buf.String())
-	// _, err = this.conn.Write(buf.Bytes())
+	_, err = conn.Write(buf.Bytes())
 	if err != nil {
-		this.mutex.Lock()
-		this.isConnect = false
-		this.mutex.Unlock()
 		log.Printf("send error, err: %v", err)
 		return err
 	}
-	this.mutex.Lock()
-	this.isConnect = true
-	this.mutex.Unlock()
 	return nil
 }
