@@ -9,7 +9,7 @@ type IClient interface {
 	Fatalln(format string, a ...interface{})
 }
 
-func new(host string, port int, serverName string, serverVersion string, serverNo string) CClient {
+func New(host string, port int, serverName string, serverVersion string, serverNo string) CClient {
 	client := CClient{
 		host:          host,
 		port:          port,

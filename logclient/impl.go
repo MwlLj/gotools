@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/MwlLj/gotools/timetool"
 	"log"
 	"net"
 	"strconv"
@@ -78,6 +79,7 @@ func (this *CClient) init() {
 				conn, isConnect = this.connect()
 			}
 			if !isConnect {
+				this.printConsole(request)
 				time.Sleep(10 * time.Millisecond)
 				continue
 			}
@@ -146,4 +148,17 @@ func (this *CClient) send(conn *net.TCPConn, request *CRequest) error {
 		return err
 	}
 	return nil
+}
+
+func (this *CClient) printConsole(request *CRequest) {
+	buffer := bytes.Buffer{}
+	buffer.WriteString("[")
+	buffer.WriteString(request.LogType)
+	buffer.WriteString("] [")
+	buffer.WriteString(timetool.GetNowSecondFormat())
+	buffer.WriteString("] [")
+	buffer.WriteString(request.Topic)
+	buffer.WriteString("] ")
+	buffer.WriteString(request.Data)
+	fmt.Println(buffer.String())
 }
