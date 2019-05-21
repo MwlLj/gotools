@@ -2,7 +2,6 @@ package websocket
 
 import (
 	"golang.org/x/net/websocket"
-	"log"
 )
 
 type CReadMessage struct {
@@ -21,14 +20,11 @@ func (this *CWebsocket) init() {
 		body := make([]byte, this.bodyMaxLength)
 		for {
 			readLen, err := this.conn.Read(body)
-			// log.Println(readLen, err)
 			if err != nil {
 				this.readChan <- nil
 				close(this.readChan)
-				log.Println("close ...")
 				break
 			}
-			log.Println(readLen, err)
 			message := CReadMessage{
 				Length: readLen,
 				Body:   body,
