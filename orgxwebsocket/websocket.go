@@ -40,7 +40,7 @@ func (this *CWebsocket) Read() <-chan *CReadMessage {
 }
 
 func (this *CWebsocket) Write(body []byte) {
-	this.Write(body)
+	this.conn.Write(body)
 }
 
 func (this *CWebsocket) Close() {
