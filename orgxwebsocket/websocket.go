@@ -1,7 +1,8 @@
-package orgxwebsocket
+package websocket
 
 import (
 	"golang.org/x/net/websocket"
+	"log"
 )
 
 type CReadMessage struct {
@@ -10,41 +11,51 @@ type CReadMessage struct {
 }
 
 type CWebsocket struct {
-	conn     *websocket.Conn
-	readChan chan *CReadMessage
+	conn          *websocket.Conn
+	readChan      chan *CReadMessage
+	bodyMaxLength int
 }
 
 func (this *CWebsocket) init() {
 	go func() {
+		body := make([]byte, this.bodyMaxLength)
 		for {
-			body := []byte{}
 			readLen, err := this.conn.Read(body)
+			// log.Println(readLen, err)
 			if err != nil {
-				continue
+				this.readChan <- nil
+				close(this.readChan)
+				log.Println("close ...")
+				break
 			}
+			log.Println(readLen, err)
 			message := CReadMessage{
 				Length: readLen,
 				Body:   body,
 			}
 			this.readChan <- &message
+			body = make([]byte, this.bodyMaxLength)
 		}
 	}()
-}
-
-func (this *CWebsocket) CloseReadChannel() {
-	if _, ok := this.readChan; ok {
-		close(this.readChan)
-	}
 }
 
 func (this *CWebsocket) Read() <-chan *CReadMessage {
 	return this.readChan
 }
 
-func New(conn *websocket.Conn) *CWebsocket {
+func (this *CWebsocket) Write(body []byte) {
+	this.Write(body)
+}
+
+func (this *CWebsocket) Close() {
+	this.conn.Close()
+}
+
+func New(conn *websocket.Conn, bodyMaxLength int) *CWebsocket {
 	ws := CWebsocket{
-		conn:     conn,
-		readChan: make(chan *CReadMessage),
+		conn:          conn,
+		readChan:      make(chan *CReadMessage, 1),
+		bodyMaxLength: bodyMaxLength,
 	}
 	ws.init()
 	return &ws
