@@ -39,8 +39,8 @@ func (this *CWebsocket) Read() <-chan *CReadMessage {
 	return this.readChan
 }
 
-func (this *CWebsocket) Write(body []byte) {
-	this.conn.Write(body)
+func (this *CWebsocket) Write(body []byte) (int, error) {
+	return this.conn.Write(body)
 }
 
 func (this *CWebsocket) Close() {
