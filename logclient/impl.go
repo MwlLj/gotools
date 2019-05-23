@@ -70,17 +70,21 @@ func (this *CClient) Fatalln(format string, a ...interface{}) {
 
 func (this *CClient) init() {
 	this.ch = make(chan *CRequest)
+	var conn *net.TCPConn = nil
+	isConnect := false
 	go func() {
-		isConnect := false
-		var conn *net.TCPConn = nil
 		for {
-			request := <-this.ch
 			if !isConnect {
 				conn, isConnect = this.connect()
 			}
+			time.Sleep(time.Second)
+		}
+	}()
+	go func() {
+		for {
+			request := <-this.ch
 			if !isConnect {
 				this.printConsole(request)
-				time.Sleep(10 * time.Millisecond)
 				continue
 			}
 			err := this.send(conn, request)
