@@ -22,3 +22,12 @@ func JsonToByIoReader(reader io.Reader, inObj interface{}, outObj interface{}, c
 	}
 	return JsonToByByte(b, inObj, outObj, callback)
 }
+
+func JsonToString(inObj interface{}, out *string) error {
+	b, err := json.Marshal(&inObj)
+	if err != nil {
+		return err
+	}
+	*out = string(b)
+	return nil
+}
