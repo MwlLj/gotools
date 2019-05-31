@@ -49,7 +49,7 @@ func genUuidFile(file string) string {
 	return strings.Join([]string{u.String(), ext}, "")
 }
 
-func DownloadFile(r *http.Request, formName string, dstRoot string, isUseUuid bool) ([]string, error) {
+func DownloadFile(r *http.Request, prefix string, formName string, dstRoot string, isUseUuid bool) ([]string, error) {
 	createDir(dstRoot)
 	var urls []string
 	err := r.ParseMultipartForm(32 << 20)
@@ -69,7 +69,7 @@ func DownloadFile(r *http.Request, formName string, dstRoot string, isUseUuid bo
 			filename = genUuidFile(filename)
 		}
 		url := strings.Join([]string{dstRoot, filename}, "/")
-		urls = append(urls, url)
+		urls = append(urls, strings.TrimPrefix(url, prefix))
 		dst, err := os.Create(url)
 		defer dst.Close()
 		if err != nil {

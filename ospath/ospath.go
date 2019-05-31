@@ -5,7 +5,7 @@ import (
 )
 
 func Exists(path *string) bool {
-	_, err := os.Stat(path)
+	_, err := os.Stat(*path)
 	if os.IsNotExist(err) {
 		return false
 	}
@@ -13,7 +13,7 @@ func Exists(path *string) bool {
 }
 
 func CreateDirsIfNotExists(path *string) error {
-	if Eixsts(*path) == false {
+	if Exists(path) == false {
 		err := os.MkdirAll(*path, 0777)
 		if err != nil {
 			return err
