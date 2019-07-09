@@ -2,6 +2,7 @@ package httpfile
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"github.com/satori/go.uuid"
 	"io"
@@ -47,6 +48,38 @@ func genUuidFile(file string) string {
 	ext := path.Ext(base)
 	u, _ := uuid.NewV4()
 	return strings.Join([]string{u.String(), ext}, "")
+}
+
+func DownloadOneFileFromFormdata(r *http.Request, formName *string, filePath *string) (*string, error) {
+	err := r.ParseMultipartForm(32 << 20)
+	if err != nil {
+		return nil, err
+	}
+	m := r.MultipartForm
+	files := m.File[*formName]
+	length := len(files)
+	if length == 0 {
+		return nil, errors.New("formName is not exist")
+	}
+	front := files[0]
+	file, err := front.Open()
+	defer file.Close()
+	if err != nil {
+		return nil, err
+	}
+	filename := front.Filename
+	if filePath != nil {
+		filename = *filePath
+	}
+	dst, err := os.Create(filename)
+	defer dst.Close()
+	if err != nil {
+		return nil, err
+	}
+	if _, err = io.Copy(dst, file); err != nil {
+		return nil, err
+	}
+	return &filename, nil
 }
 
 func DownloadFile(r *http.Request, prefix string, formName string, dstRoot string, isUseUuid bool) ([]string, error) {

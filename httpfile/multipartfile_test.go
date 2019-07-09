@@ -11,7 +11,7 @@ type CUploadFileHandler struct {
 }
 
 func (*CUploadFileHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	urls, err := DownloadFile(r, "file", "uploads", true)
+	urls, err := DownloadFile(r, "file", "uploads", ".", true)
 	fmt.Println(urls, err)
 	io.WriteString(w, "success")
 }
@@ -21,6 +21,16 @@ func (*CUploadFileHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // 	mux.Handle("/multi/file", &CUploadFileHandler{})
 // 	http.ListenAndServe(":8080", mux)
 // }
+
+func TestDownloadOneFileFromFormdata(t *testing.T) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/index", func(w http.ResponseWriter, r *http.Request) {
+		formName := "file"
+		filePath := "test"
+		DownloadOneFileFromFormdata(r, &formName, &filePath)
+	})
+	http.ListenAndServe(":123456", mux)
+}
 
 func TestUploadFile(t *testing.T) {
 	var response string = ""
